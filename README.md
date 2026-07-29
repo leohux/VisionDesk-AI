@@ -1,63 +1,206 @@
-# Screen Live Detect (YOLO-World + Supervision)
+# VisionDesk AI
 
-本机屏幕区域实时检测：左侧画面画框，右侧类似 LocateAnything 的 Output Stream 输出。
+**Local-first desktop vision agent** — real-time screen perception, adaptive YOLO detection, and LocateAnything-3B reasoning only when it matters.
 
-## Features
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Version](https://img.shields.io/badge/version-0.1.0-brightgreen.svg)](__version__.py)
 
-- YOLO-World 开集检测（用文字指定类别，无需为每个新物体重新训练）
-- Supervision 画框 + ByteTrack 跟踪
-- 双屏自动分离：截内容屏、预览窗放到另一块屏（避免截到自己导致画面假死）
-- 默认类别含人、宠物、常见物体、无人机、枪械
+> Privacy-first: runs on **your GPU**. No cloud upload required for the core loop.
 
-## Requirements
+```text
+Screen / ROI
+    ↓
+YOLO realtime (≈34–38 FPS)
+    ↓
+Smart Trigger Router
+    ↓
+LocateAnything-3B  ← only when uncertain / new / forced
+    ↓
+AI Summary → SQLite Event Memory → Timeline Replay
+```
 
-- Windows
-- Python 3.10+
-- NVIDIA GPU 推荐（CUDA）
-- 依赖：`ultralytics`、`supervision`、`mss`、`opencv-python`、`pillow`、`torch`
+## Why this exists
+
+Most “AI vision” demos either:
+
+- burn the GPU on every frame with a heavy VLM, or
+- stay at YOLO-only and never explain *what is going on*.
+
+VisionDesk sits in between: **fast eyes + selective brain**.
+
+| Capability | Status |
+|---|---|
+| Real-time screen / ROI capture | ✅ |
+| YOLO adaptive detection | ✅ |
+| Adaptive Vision Routing (3B on demand) | ✅ |
+| Event memory + snapshot replay | ✅ |
+| Gradio cockpit + OpenCV desktop | ✅ |
+| Offline replay / benchmark CLI | ✅ |
+| Scene profiles (YAML) | ✅ |
+| VLM Q&A over event history | 🚧 v0.2 |
+
+## Performance (v0.1.0)
+
+Measured on `demo/traffic.mp4` (377 frames, `traffic` profile, ~16GB CUDA):
+
+| Mode | FPS | 3B calls | Reasoning efficiency | GPU |
+|------|-----|----------|----------------------|-----|
+| YOLO only | **37 FPS** | 0 | — | YOLO-only |
+| YOLO + smart 3B | **23 FPS** | **6 / 377** | **62.8 frames / call** | ~8–10 GB |
+
+≈ **98.3%** of deepen candidates skipped · queue pending ≤ 1
+
+Reproduce:
+
+```bash
+python visiondesk.py replay demo/traffic.mp4 --profile traffic --json
+python visiondesk.py replay demo/traffic.mp4 --profile traffic --no-deep --json
+```
+
+Numbers live in [`demo/benchmark/SUMMARY.json`](demo/benchmark/SUMMARY.json).
 
 ## Quick start
 
-```powershell
-# 建议使用已装好 CUDA 的 Python 环境
-python screen_yolo_world.py --device 0 --conf 0.25
+### 1. Install
+
+```bash
+git clone https://github.com/hkhk792/VisionDesk-AI.git
+cd VisionDesk-AI
+
+# Install CUDA PyTorch for your GPU first: https://pytorch.org
+pip install -r requirements.txt
+
+# Optional: place yolov8m.pt in the project root (Ultralytics can also auto-download)
 ```
 
-常用参数：
+### 2. Launch the Gradio cockpit (recommended)
 
-```powershell
-# 指定截屏显示器（mss 编号，可用脚本启动日志查看）
-python screen_yolo_world.py --monitor 2 --ui-monitor 1
-
-# 只截一块区域 x,y,width,height
-python screen_yolo_world.py --region 100,50,720,1280
-
-# 自定义类别
-python screen_yolo_world.py --classes "person,dog,cat,drone,gun,phone"
+```bash
+python visiondesk.py ui
+# or
+python app_ui.py
 ```
 
-按键：
+Open **http://127.0.0.1:7860**
 
-- `q` / `ESC`：退出
-- `s`：保存当前合成画面到 `output/screen_live/`
-- `c`：清空右侧输出流
-- `1` / `2` / `3`：置信度 0.15 / 0.25 / 0.40
+Suggested first run:
 
-## Other scripts
+1. Profile `traffic`, **LocateAnything-3B OFF** → confirm live FPS
+2. Open **Capture settings** → pick monitor / 1080p processing
+3. Enable 3B when ready (~7GB VRAM on first load)
+4. Watch **Event Timeline** → click an event to replay its snapshot
 
-| Script | Description |
-|--------|-------------|
-| `demo_annotate.py` | Supervision 最小画框示例 |
-| `batch_luage_direct.py` | LocateAnything-3B 批量图片检测 + Supervision 画框 |
-| `video_luage_detect.py` | 视频抽帧检测示例 |
-| `smoke_screen_yolo.py` | 屏幕截取单帧冒烟测试 |
+### 3. OpenCV desktop window
 
-## Notes
+```bash
+python main.py --profile general
+python main.py --profile traffic --select-roi
+python main.py --profile person --no-deep
+```
 
-- YOLO-World 不是“识别一切自动分类”，每次只检测你通过 `--classes` / 默认列表指定的类别。
-- 权重文件（如 `yolov8s-worldv2.pt`）首次运行会自动下载，不纳入本仓库。
-- 枪械/无人机检测仅用于内容安全与研究演示，请遵守当地法律法规与平台规则。
+| Key | Action |
+|-----|--------|
+| `q` / `ESC` | Quit |
+| `1`–`4` | Switch profile |
+| `d` | Toggle 3B deepen |
+| `r` | Re-select ROI |
+| `s` | Save snapshot |
+
+### 4. Replay / benchmark any video or image
+
+```bash
+python visiondesk.py replay path/to/video.mp4 --profile traffic --json
+python visiondesk.py replay shot.jpg --profile general --no-deep
+```
+
+## LocateAnything-3B setup
+
+3B is optional. YOLO-only mode works out of the box.
+
+1. Download / clone [nvidia/LocateAnything-3B](https://huggingface.co/nvidia/LocateAnything-3B) locally.
+2. Point VisionDesk at it **one** of these ways:
+
+```bash
+# environment variable (preferred)
+set LOCATE_ANYTHING_PATH=C:\path\to\LocateAnything-3B   # Windows
+export LOCATE_ANYTHING_PATH=/path/to/LocateAnything-3B  # Linux/macOS
+```
+
+```yaml
+# or in profiles/*.yaml
+locate3b:
+  enabled: true
+  model_path: LocateAnything-3B   # relative or absolute
+```
+
+3. Use the same Python env that can import that model’s dependencies, or install them into this venv.
+
+## Architecture
+
+```text
+Gradio UI / CLI
+       ↓
+api/controller.py     ← engine facade, 3B singleton cache, health
+       ↓
+Capture → YOLO → DualBrain Router → LocateAnything-3B
+       ↓
+SQLite events + optional frame snapshots
+```
+
+```text
+VisionDesk-AI/
+├── visiondesk.py          # CLI: ui | replay
+├── app_ui.py              # Gradio entry (crash-safe)
+├── main.py                # OpenCV desktop entry
+├── api/controller.py      # Vision Engine
+├── core/                  # capture, dual_brain, health, events, factory
+├── models/                # yolo, locate3b wrappers
+├── profiles/              # YAML scenes
+├── ui/gradio_app.py       # Cockpit
+├── tools/replay.py        # Offline benchmark
+└── demo/                  # sample media + measured benchmarks
+```
+
+## Profiles
+
+| Profile | Best for |
+|---------|----------|
+| `general` | Everyday objects |
+| `traffic` | Vehicles + people |
+| `person` | People-focused |
+| `security` | Higher-sensitivity / force labels |
+| `gaming` | Example custom profile |
+
+Edit `profiles/*.yaml` — user-facing sections: `detection`, `trigger`, `reasoning`, `capture`.
+
+Default processing width is **1920px (1080p)** for stable FPS on 4K monitors; raise to 1440p / native in the UI when you need more detail.
+
+## Requirements
+
+- Python **3.10+**
+- CUDA GPU recommended (16GB+ comfortable for YOLO + 3B)
+- `yolov8m.pt` (or change weights in profile)
+- LocateAnything-3B only if you enable deepen
+
+## Roadmap
+
+| Version | Focus |
+|---------|--------|
+| **v0.1.0** | Perception + adaptive 3B + memory + cockpit + benchmark |
+| v0.2.0 | VLM Q&A over event history (“why did this alert fire?”) |
+| later | Multi-monitor layouts, export packs, plugin profiles |
+
+## Contributing
+
+Issues and PRs welcome. Please keep changes focused:
+
+- no drive-by refactors
+- include a short note if you change trigger / profile defaults
+- for performance claims, attach `visiondesk.py replay … --json` output
 
 ## License
 
-MIT
+[MIT](LICENSE) © 2026 [hkhk792](https://github.com/hkhk792)
+
+YOLO / Ultralytics, Supervision, and LocateAnything-3B remain under their respective licenses.

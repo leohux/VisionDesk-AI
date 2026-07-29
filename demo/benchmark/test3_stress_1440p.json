@@ -1,0 +1,18 @@
+{
+  "test": "3_stress_1440p",
+  "media": "demo/openworld_demo.mp4",
+  "media_meta": {"frames_total": 1899, "processed": 150, "stride": 2, "resolution": "2560x1440"},
+  "profile": "traffic",
+  "mode": "yolo_plus_3b_smart_trigger",
+  "processed_frames": 150,
+  "yolo_detections": 8,
+  "deep_calls": 3,
+  "skipped": 146,
+  "skip_rate_pct": 98.0,
+  "superseded": 1,
+  "average_fps": 15.4,
+  "deep_avg_latency_s": 1.87,
+  "gpu_peak_gb": 7.8,
+  "queue": "pending stayed <=1 (superseded=1, no backlog)",
+  "elapsed_s": 9.7
+}

@@ -1,0 +1,60 @@
+# Example custom profile â€?copy & edit for your domain.
+# Users can create profiles/*.yaml; load via --profile gaming
+
+name: gaming
+title: Gaming Scene
+description: Example user profile for game capture analysis
+
+profile: gaming
+
+capture:
+  monitor: 0
+  ui_monitor: 0
+  region: null
+  max_width: 1920
+
+detection:
+  classes: [person, car, truck]
+  conf: 0.25
+
+yolo:
+  enabled: true
+  backend: coco
+  weights: yolov8m.pt
+  conf: 0.25
+  imgsz: 1280
+  max_det: 300
+  classes: []
+  keep_class_ids: [0, 2, 3, 5, 7]
+
+locate3b:
+  enabled: true
+  model_path: LocateAnything-3B
+  generation_mode: hybrid
+  max_side: 960
+  max_new_tokens: 768
+  classes: [person, weapon, vehicle, enemy, item]
+
+trigger:
+  labels: [person, car, truck]
+  force_labels: []
+  skip_above_conf: 0.90
+  uncertain_below_conf: 0.65
+  min_conf: 0.3
+  max_pending_jobs: 1
+  cooldown_sec: 2.0
+  max_roi_boxes: 3
+
+reasoning:
+  enabled: true
+  prompt: "Analyze game scene: players, threats, and key objects."
+
+dual_brain:
+  enabled: true
+
+tracker:
+  enabled: true
+
+events:
+  enabled: true
+  db_path: data/events.db

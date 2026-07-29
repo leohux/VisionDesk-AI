@@ -1,0 +1,37 @@
+{
+  "suite": "VisionDesk AI — pre-release benchmark",
+  "version": "0.1.0",
+  "date": "2026-07-29",
+  "profile": "traffic",
+  "hardware": "CUDA GPU ~16GB (LocateAnything venv)",
+  "results": {
+    "yolo_only": {
+      "media": "demo/traffic.mp4 (377f, 768x432)",
+      "fps": 37.1,
+      "yolo_detections": 56,
+      "deep_calls": 0
+    },
+    "yolo_smart_3b": {
+      "media": "demo/traffic.mp4 (377f, 768x432)",
+      "fps": 23.0,
+      "yolo_detections": 56,
+      "deep_calls": 6,
+      "skipped_pct": 98.3,
+      "superseded": 33,
+      "deep_avg_latency_s": 2.25,
+      "reasoning_efficiency": 62.8,
+      "gpu_peak_gb": 7.67,
+      "nvidia_smi_approx_gb": 10.0
+    },
+    "stress_1440p": {
+      "media": "demo/openworld_demo.mp4 (150f @stride2, 2560x1440)",
+      "fps": 15.4,
+      "deep_calls": 3,
+      "skipped_pct": 98.0,
+      "superseded": 1,
+      "gpu_peak_gb": 7.8,
+      "queue_pending": "0-1"
+    }
+  },
+  "selling_point": "VisionDesk AI uses adaptive reasoning routing, invoking heavy multimodal reasoning only when necessary."
+}

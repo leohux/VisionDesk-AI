@@ -1,0 +1,16 @@
+{
+  "test": "1_yolo_only",
+  "media": "demo/traffic.mp4",
+  "media_meta": {"frames": 377, "fps_src": 12.5, "resolution": "768x432", "source": "intel-iot-devkit/sample-videos car-detection.mp4"},
+  "profile": "traffic",
+  "mode": "yolo_only",
+  "total_frames": 377,
+  "processed_frames": 377,
+  "yolo_detections": 56,
+  "deep_calls": 0,
+  "average_fps": 37.1,
+  "yolo_avg_ms": 25.9,
+  "gpu_peak_gb_torch": 0.1,
+  "gpu_note": "torch.memory_allocated under-reports Ultralytics resident weights; wall FPS is the primary YOLO baseline metric",
+  "elapsed_s": 10.2
+}

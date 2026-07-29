@@ -14,7 +14,7 @@ import torch
 from PIL import Image
 from transformers import AutoModel, AutoProcessor, AutoTokenizer
 
-MODEL = Path(r"D:\locate any\LocateAnything-3B")
+MODEL = Path(__import__("os").environ.get("LOCATE_ANYTHING_PATH", "LocateAnything-3B"))
 OUT_DIR = Path(r"D:\supervision\output\luage_detect")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 

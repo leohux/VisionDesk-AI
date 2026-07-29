@@ -1,0 +1,21 @@
+{
+  "test": "2_yolo_smart_3b",
+  "media": "demo/traffic.mp4",
+  "media_meta": {"frames": 377, "fps_src": 12.5, "resolution": "768x432"},
+  "profile": "traffic",
+  "mode": "yolo_plus_locateanything_3b_smart_trigger",
+  "total_frames": 377,
+  "processed_frames": 377,
+  "yolo_detections": 56,
+  "deep_calls": 6,
+  "skipped": 338,
+  "skip_rate_pct": 98.3,
+  "superseded": 33,
+  "average_fps": 23.0,
+  "yolo_avg_ms": 37.2,
+  "deep_avg_latency_s": 2.25,
+  "gpu_peak_gb": 7.67,
+  "nvidia_smi_observed_gb": 9.98,
+  "elapsed_s": 16.4,
+  "headline": "6/377 frames invoked 3B (~1.6%); 98.3% skipped; queue overwrite kept pending<=1 (superseded=33)"
+}

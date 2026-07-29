@@ -14,7 +14,7 @@ import torch
 from PIL import Image
 from transformers import AutoModel, AutoProcessor, AutoTokenizer
 
-MODEL = Path(r"D:\locate any\LocateAnything-3B")
+MODEL = Path(__import__("os").environ.get("LOCATE_ANYTHING_PATH", "LocateAnything-3B"))
 VIDEO_IN = Path(r"D:\luage\public\hero-alibarbar.mp4")
 OUT_DIR = Path(r"D:\supervision\output\luage_video")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -135,7 +135,7 @@ def resize_for_model(frame_bgr: np.ndarray) -> tuple[Image.Image, float]:
 
 def main() -> None:
     if not VIDEO_IN.exists():
-        raise SystemExit(f"视频不存在: {VIDEO_IN}")
+        raise SystemExit(f"视频不存�? {VIDEO_IN}")
 
     info = sv.VideoInfo.from_video_path(str(VIDEO_IN))
     sample_every = max(1, int(round(info.fps * SAMPLE_EVERY_SEC)))

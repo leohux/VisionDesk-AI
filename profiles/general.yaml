@@ -1,0 +1,58 @@
+name: general
+title: Common Objects
+description: Fast COCO common-object scan with optional 3B deepen
+
+profile: general
+
+capture:
+  monitor: 0
+  ui_monitor: 0
+  region: null
+  max_width: 1920
+
+detection:
+  classes: [person, car, truck, bus, dog, cat, phone, laptop, cup, bottle, chair, bag, book, tv]
+  conf: 0.25
+
+yolo:
+  enabled: true
+  backend: coco
+  weights: yolov8m.pt
+  conf: 0.25
+  imgsz: 1280
+  max_det: 300
+  classes: []
+  keep_class_ids: null
+
+locate3b:
+  enabled: true
+  model_path: LocateAnything-3B
+  generation_mode: hybrid
+  max_side: 960
+  max_new_tokens: 768
+  classes: [person, car, truck, bus, dog, cat, phone, laptop, cup, bottle, chair, bag, book, tv]
+
+trigger:
+  labels: [person, car, truck, bus, dog, cat]
+  skip_above_conf: 0.90
+  uncertain_below_conf: 0.65
+  min_conf: 0.35
+  on_new_label: true
+  cooldown_sec: 2.5
+  max_roi_boxes: 3
+  max_pending_jobs: 1
+
+reasoning:
+  enabled: true
+  prompt: "Describe the main objects and what is happening in the scene."
+
+dual_brain:
+  enabled: true
+  force_labels: []
+
+tracker:
+  enabled: true
+
+events:
+  enabled: true
+  db_path: data/events.db

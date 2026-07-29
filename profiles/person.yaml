@@ -1,0 +1,58 @@
+name: person
+title: People
+description: Person-focused scan with smart 3B deepen
+
+profile: person
+
+capture:
+  monitor: 0
+  ui_monitor: 0
+  region: null
+  max_width: 1920
+
+detection:
+  classes: [person]
+  conf: 0.25
+
+yolo:
+  enabled: true
+  backend: coco
+  weights: yolov8m.pt
+  conf: 0.25
+  imgsz: 1280
+  max_det: 300
+  classes: []
+  keep_class_ids: [0]
+
+locate3b:
+  enabled: true
+  model_path: LocateAnything-3B
+  generation_mode: hybrid
+  max_side: 1024
+  max_new_tokens: 768
+  classes: [person]
+
+trigger:
+  labels: [person]
+  skip_above_conf: 0.92
+  uncertain_below_conf: 0.60
+  min_conf: 0.3
+  on_new_label: true
+  cooldown_sec: 1.8
+  max_roi_boxes: 2
+  max_pending_jobs: 1
+
+reasoning:
+  enabled: true
+  prompt: "Analyze people in the scene: count, pose, and notable actions."
+
+dual_brain:
+  enabled: true
+  force_labels: []
+
+tracker:
+  enabled: true
+
+events:
+  enabled: true
+  db_path: data/events.db

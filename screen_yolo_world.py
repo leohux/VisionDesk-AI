@@ -52,13 +52,23 @@ DEFAULT_CLASSES = [
     "tv",
     "car",
     "bicycle",
-    # aerial / weapons
+    # aerial / weapons（开集提示要尽量多样，具体枪型识别率仍有限）
     "drone",
     "UAV",
+    "quadcopter",
     "gun",
     "rifle",
     "pistol",
     "firearm",
+    "weapon",
+    "assault rifle",
+    "machine gun",
+    "M4",
+    "M4A1",
+    "AR-15",
+    "AK-47",
+    "handgun",
+    "shotgun",
 ]
 
 # LocateAnything 风格配色 (BGR for OpenCV panels / RGB for PIL)
@@ -87,9 +97,11 @@ def grab_bgr(sct: mss.MSS, region: dict) -> np.ndarray:
     return cv2.cvtColor(shot, cv2.COLOR_BGRA2BGR)
 
 
-def build_model(weights: str, classes: list[str]) -> YOLO:
+def build_model(weights: str, classes: list[str], backend: str = "world") -> YOLO:
     model = YOLO(weights)
-    model.set_classes(classes)
+    # 只有 YOLO-World 才 set_classes；COCO 权重调用会破坏检测
+    if backend == "world":
+        model.set_classes(classes)
     return model
 
 
@@ -125,7 +137,7 @@ class OutputStreamPanel:
     def push_detections(
         self,
         detections: sv.Detections,
-        classes: list[str],
+        class_names: dict | list[str],
         fps: float,
         conf_th: float,
         infer_ms: float,
@@ -145,13 +157,23 @@ class OutputStreamPanel:
             if detections.tracker_id is not None
             else [None] * n
         )
+
+        def name_of(cid) -> str:
+            if cid is None:
+                return "?"
+            i = int(cid)
+            if isinstance(class_names, dict):
+                return str(class_names.get(i, i))
+            if 0 <= i < len(class_names):
+                return str(class_names[i])
+            return str(i)
+
         for i, (xyxy, cid, conf_i, tid) in enumerate(
             zip(detections.xyxy, detections.class_id, detections.confidence, tracker_ids)
         ):
-            name = classes[int(cid)] if cid is not None and int(cid) < len(classes) else str(cid)
+            name = name_of(cid)
             x1, y1, x2, y2 = [float(v) for v in xyxy]
             tid_s = f"id={int(tid)} " if tid is not None else ""
-            # 交替颜色，类似 LA 的 mtp/ar token
             color = TOKEN_MTP if i % 2 == 0 else TOKEN_AR
             self.add(
                 f"  <det> {tid_s}{name} {float(conf_i):.0%} "
@@ -218,7 +240,20 @@ def compose(left_bgr: np.ndarray, right_bgr: np.ndarray) -> np.ndarray:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Screen detect with LocateAnything-style output stream")
-    ap.add_argument("--weights", default="yolov8s-worldv2.pt")
+    ap.add_argument("--weights", default="", help="空则按 backend 自动选 yolov8m.pt / world 权重")
+    ap.add_argument(
+        "--backend",
+        default="auto",
+        choices=["auto", "world", "coco"],
+        help="coco=标准YOLO更稳(车/人)；world=开集；auto=traffic/general用coco",
+    )
+    ap.add_argument(
+        "--profile",
+        default="",
+        choices=["", "traffic", "weapons", "pets", "general", "person"],
+        help="traffic=车流；person=只认人；general=COCO常见物；weapons/pets=开集",
+    )
+    ap.add_argument("--no-track", action="store_true", help="关闭跟踪，排障更直观")
     ap.add_argument("--classes", default=",".join(DEFAULT_CLASSES))
     ap.add_argument("--region", default="", help="x,y,width,height；空=按 --monitor 截屏")
     ap.add_argument(
@@ -238,28 +273,121 @@ def main() -> None:
     ap.add_argument("--device", default="")
     ap.add_argument("--stream-width", type=int, default=460, help="右侧输出面板宽度")
     ap.add_argument("--log-every", type=int, default=3, help="每 N 帧写一次右侧流，避免刷太快")
+    ap.add_argument("--max-det", type=int, default=300, help="单帧最多检测框数（默认 300，不是 5~7）")
+    ap.add_argument(
+        "--slice",
+        action="store_true",
+        help="切片检测：把大图切成小块再识别，密集/远处小车更全（更慢）",
+    )
+    ap.add_argument("--slice-size", type=int, default=640, help="切片边长")
+    ap.add_argument("--slice-overlap", type=int, default=96, help="切片重叠像素")
     args = ap.parse_args()
 
-    classes = [c.strip() for c in args.classes.replace("，", ",").split(",") if c.strip()]
-    if not classes:
-        raise SystemExit("类别列表为空")
+    profile_classes = {
+        "traffic": [
+            "car",
+            "truck",
+            "bus",
+            "van",
+            "motorcycle",
+            "bicycle",
+            "person",
+            "traffic light",
+        ],
+        "weapons": [
+            "drone",
+            "UAV",
+            "quadcopter",
+            "gun",
+            "rifle",
+            "pistol",
+            "firearm",
+            "weapon",
+            "assault rifle",
+            "M4",
+            "M4A1",
+            "AR-15",
+            "AK-47",
+            "person",
+        ],
+        "pets": [
+            "person",
+            "dog",
+            "cat",
+            "bird",
+            "fish",
+            "rabbit",
+            "hamster",
+        ],
+        "general": [],
+        "person": ["person"],
+    }
+    if args.profile:
+        classes = profile_classes[args.profile]
+    else:
+        classes = [c.strip() for c in args.classes.replace("，", ",").split(",") if c.strip()]
+
+    if args.backend == "auto":
+        backend = "coco" if args.profile in ("traffic", "general", "person") else "world"
+    else:
+        backend = args.backend
+
+    if backend == "world" and not classes:
+        raise SystemExit("开集模式需要类别列表")
 
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     conf = float(args.conf)
 
-    # 权重优先用 supervision 目录下已下载的文件
-    weights = args.weights
+    weights = args.weights or ("yolov8m.pt" if backend == "coco" else "yolov8m-worldv2.pt")
     local_w = Path(__file__).resolve().parent / weights
     if local_w.exists():
         weights = str(local_w)
 
-    print(f"device={device}  weights={weights}", flush=True)
-    print(f"classes={classes}", flush=True)
-    model = build_model(weights, classes)
+    # COCO 交通过滤：car/motorcycle/bus/truck (+bicycle/person)
+    coco_keep = None
+    if backend == "coco" and args.profile == "traffic":
+        coco_keep = {0, 1, 2, 3, 5, 7}  # person, bicycle, car, motorcycle, bus, truck
+        classes = ["person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck"]
+    elif backend == "coco" and args.profile == "person":
+        coco_keep = {0}  # person only
+        classes = ["person"]
+
+    print(f"device={device}  backend={backend}  weights={weights}", flush=True)
+    print(f"classes={classes if classes else 'COCO-all'}", flush=True)
+    model = build_model(weights, classes, backend=backend)
 
     box_annotator = sv.BoxAnnotator(thickness=2)
     label_annotator = sv.LabelAnnotator(text_thickness=1, text_scale=0.5)
-    tracker = sv.ByteTrack()
+    tracker = None if args.no_track else sv.ByteTrack()
+    coco_names = None
+
+    def detect_callback(image_slice: np.ndarray) -> sv.Detections:
+        r = model.predict(
+            image_slice,
+            conf=conf,
+            imgsz=args.imgsz if not args.slice else min(args.imgsz, args.slice_size),
+            device=device,
+            max_det=args.max_det,
+            verbose=False,
+        )[0]
+        det = sv.Detections.from_ultralytics(r)
+        if backend == "coco" and coco_keep is not None and len(det):
+            det = det[np.isin(det.class_id, list(coco_keep))]
+        return det
+
+    slicer = None
+    if args.slice:
+        slicer = sv.InferenceSlicer(
+            callback=detect_callback,
+            slice_wh=args.slice_size,
+            overlap_wh=args.slice_overlap,
+            iou_threshold=0.5,
+            thread_workers=1,
+        )
+        print(
+            f"slice ON  size={args.slice_size} overlap={args.slice_overlap}",
+            flush=True,
+        )
 
     with mss.MSS() as sct:
         # monitors[0] = 全部虚拟屏；1..N = 各物理屏
@@ -335,15 +463,31 @@ def main() -> None:
             t0 = time.perf_counter()
             frame = grab_bgr(sct, region)
 
-            results = model.predict(
-                frame,
-                conf=conf,
-                imgsz=args.imgsz,
-                device=device,
-                verbose=False,
-            )
-            detections = sv.Detections.from_ultralytics(results[0])
-            detections = tracker.update_with_detections(detections)
+            if slicer is not None:
+                detections = slicer(frame)
+                # names_map for coco from model
+                names_map = model.model.names if backend == "coco" else {i: n for i, n in enumerate(classes)}
+                if isinstance(names_map, dict):
+                    pass
+                else:
+                    names_map = {i: n for i, n in enumerate(names_map)}
+            else:
+                result = model.predict(
+                    frame,
+                    conf=conf,
+                    imgsz=args.imgsz,
+                    device=device,
+                    max_det=args.max_det,
+                    verbose=False,
+                )[0]
+                detections = sv.Detections.from_ultralytics(result)
+                if backend == "coco" and coco_keep is not None and len(detections):
+                    mask = np.isin(detections.class_id, list(coco_keep))
+                    detections = detections[mask]
+                names_map = result.names if backend == "coco" else {i: n for i, n in enumerate(classes)}
+
+            if tracker is not None:
+                detections = tracker.update_with_detections(detections)
 
             labels = []
             tracker_ids = (
@@ -351,11 +495,14 @@ def main() -> None:
                 if detections.tracker_id is not None
                 else [None] * len(detections)
             )
-            for cid, conf_i, tid in zip(detections.class_id, detections.confidence, tracker_ids):
-                name = classes[int(cid)] if cid is not None and int(cid) < len(classes) else str(cid)
+            class_ids = detections.class_id if detections.class_id is not None else []
+            confs = detections.confidence if detections.confidence is not None else []
+            for cid, conf_i, tid in zip(class_ids, confs, tracker_ids):
+                name = names_map.get(int(cid), str(cid)) if cid is not None else "?"
                 tid_s = f"#{int(tid)} " if tid is not None else ""
                 labels.append(f"{tid_s}{name} {float(conf_i):.0%}")
 
+            # OutputStream / 画框
             annotated = box_annotator.annotate(scene=frame.copy(), detections=detections)
             if len(detections):
                 annotated = label_annotator.annotate(
@@ -367,7 +514,7 @@ def main() -> None:
             fps_ema = fps if fps_ema == 0 else (fps_ema * 0.85 + fps * 0.15)
             cv2.putText(
                 annotated,
-                f"FPS {fps_ema:.1f} | boxes {len(detections)} | conf {conf:.2f}",
+                f"FPS {fps_ema:.1f} | boxes {len(detections)} | conf {conf:.2f} | {backend}{'+slice' if slicer else ''}",
                 (12, 28),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.7,
@@ -389,7 +536,7 @@ def main() -> None:
             if tick % max(1, args.log_every) == 0:
                 stream.push_detections(
                     detections,
-                    classes,
+                    names_map,
                     fps=fps_ema,
                     conf_th=conf,
                     infer_ms=dt * 1000,

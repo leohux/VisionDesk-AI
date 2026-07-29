@@ -1,0 +1,16 @@
+# VisionDesk AI — core runtime
+# Install CUDA PyTorch first from https://pytorch.org (match your GPU), then:
+#   pip install -r requirements.txt
+
+ultralytics>=8.3.0
+supervision>=0.22.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+mss>=9.0.0
+PyYAML>=6.0
+gradio>=4.44.0
+torch>=2.1.0
+Pillow>=10.0.0
+
+# LocateAnything-3B extra deps are provided by that project's environment.
+# Point profiles/*.yaml locate3b.model_path (or set LOCATE_ANYTHING_PATH).

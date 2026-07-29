@@ -1,15 +1,30 @@
 .venv/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+
+# local runtime / privacy
 output/
 weights/
+data/*.db
+data/event_frames/
+data/bench/
+data/roi_probe/
 *.pt
 *.onnx
 *.engine
-.DS_Store
-Thumbs.db
 *.log
 .env
 .env.*
+
+# oversized demo assets (keep traffic.mp4)
+demo/openworld_demo.mp4
+
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
