@@ -65,7 +65,7 @@ Numbers live in [`demo/benchmark/SUMMARY.json`](demo/benchmark/SUMMARY.json).
 ### 1. Install
 
 ```bash
-git clone https://github.com/hkhk792/VisionDesk-AI.git
+git clone https://github.com/leohux/VisionDesk-AI.git
 cd VisionDesk-AI
 
 # Install CUDA PyTorch for your GPU first: https://pytorch.org
@@ -201,6 +201,6 @@ Issues and PRs welcome. Please keep changes focused:
 
 ## License
 
-[MIT](LICENSE) © 2026 [hkhk792](https://github.com/hkhk792)
+[MIT](LICENSE) © 2026 [leohux](https://github.com/leohux)
 
 YOLO / Ultralytics, Supervision, and LocateAnything-3B remain under their respective licenses.
