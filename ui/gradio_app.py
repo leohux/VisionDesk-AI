@@ -232,6 +232,19 @@ def ui_start(
     return refresh()
 
 
+def ui_load(
+    profile: str,
+    enable_3b: bool,
+    monitor_label: str,
+    region_preset: str,
+    resolution_preset: str,
+):
+    """Auto-start on first open, but never clobber an already-running engine."""
+    if CONTROLLER.running:
+        return refresh()
+    return ui_start(profile, enable_3b, monitor_label, region_preset, resolution_preset)
+
+
 def ui_apply_capture(monitor_label: str, region_preset: str, resolution_preset: str):
     """Capture dropdowns take effect right away, running or not."""
     CONTROLLER.set_capture(
@@ -408,7 +421,7 @@ Local-first desktop vision agent · **YOLO realtime** + **smart LocateAnything-3
         gr.Timer(0.25).tick(refresh_live, outputs=live_outs)
         gr.Timer(2.0).tick(refresh_events, outputs=event_outs)
         # open page → start YOLO realtime immediately (3B stays off until checked)
-        demo.load(ui_start, inputs=start_inputs, outputs=outs)
+        demo.load(ui_load, inputs=start_inputs, outputs=outs)
 
     return demo
 

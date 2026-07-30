@@ -51,6 +51,9 @@ def _free_gpu() -> None:
             pass
 
 
+_MIN_REGION = 32
+
+
 def _deep_key(cfg: dict) -> tuple:
     la = cfg.get("locate3b") or {}
     return (
@@ -228,6 +231,20 @@ class VisionController:
         except Exception:
             return []
 
+    @staticmethod
+    def _clamp_region(mon: Region, region: tuple) -> Region:
+        """Keep a monitor-relative region inside the monitor.
+
+        mss happily grabs past the screen edge and pads the frame with garbage,
+        so an oversized preset would silently feed junk pixels to YOLO.
+        """
+        x, y, w, h = (int(v) for v in region)
+        x = max(0, min(x, max(0, mon.width - _MIN_REGION)))
+        y = max(0, min(y, max(0, mon.height - _MIN_REGION)))
+        w = max(_MIN_REGION, min(w, mon.width - x))
+        h = max(_MIN_REGION, min(h, mon.height - y))
+        return Region(mon.left + x, mon.top + y, w, h)
+
     def probe_capture(
         self, monitor: int | None, region: tuple | None, max_width: int | None = 1920
     ) -> tuple[np.ndarray | None, str]:
@@ -239,8 +256,7 @@ class VisionController:
                 mon_i = int(monitor) if monitor else cap.primary_index()
                 mon = cap.monitor_region(mon_i)
                 if region and len(region) == 4:
-                    x, y, w, h = (int(v) for v in region)
-                    r = Region(mon.left + x, mon.top + y, w, h)
+                    r = self._clamp_region(mon, region)
                 else:
                     r = mon
                 bgr = cap.grab(r)
@@ -271,10 +287,8 @@ class VisionController:
             mon_i = self.cap.primary_index()
         region_cfg = self.region_override or cap_cfg.get("region")
         if region_cfg and len(region_cfg) == 4:
-            mon = self.cap.monitor_region(mon_i)
-            x, y, w, h = (int(v) for v in region_cfg)
             # region is relative to the selected monitor
-            self.region = Region(mon.left + x, mon.top + y, w, h)
+            self.region = self._clamp_region(self.cap.monitor_region(mon_i), region_cfg)
             self.source = "roi"
         else:
             self.region = self.cap.monitor_region(mon_i)
