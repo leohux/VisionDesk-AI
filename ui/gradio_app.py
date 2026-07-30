@@ -218,6 +218,7 @@ def ui_start(
     monitor_label: str,
     region_preset: str,
     resolution_preset: str,
+    last_event_id: int | None = None,
 ):
     CONTROLLER.set_capture(
         _monitor_index(monitor_label),
@@ -229,7 +230,7 @@ def ui_start(
         CONTROLLER.stop()
     CONTROLLER.start(profile=profile, load_deep=bool(enable_3b))
     time.sleep(0.3)
-    return refresh()
+    return refresh(last_event_id)
 
 
 def ui_load(
@@ -238,14 +239,22 @@ def ui_load(
     monitor_label: str,
     region_preset: str,
     resolution_preset: str,
+    last_event_id: int | None = None,
 ):
     """Auto-start on first open, but never clobber an already-running engine."""
     if CONTROLLER.running:
-        return refresh()
-    return ui_start(profile, enable_3b, monitor_label, region_preset, resolution_preset)
+        return refresh(last_event_id)
+    return ui_start(
+        profile, enable_3b, monitor_label, region_preset, resolution_preset, last_event_id
+    )
 
 
-def ui_apply_capture(monitor_label: str, region_preset: str, resolution_preset: str):
+def ui_apply_capture(
+    monitor_label: str,
+    region_preset: str,
+    resolution_preset: str,
+    last_event_id: int | None = None,
+):
     """Capture dropdowns take effect right away, running or not."""
     CONTROLLER.set_capture(
         _monitor_index(monitor_label),
@@ -253,29 +262,29 @@ def ui_apply_capture(monitor_label: str, region_preset: str, resolution_preset: 
         _processing_width(resolution_preset),
     )
     time.sleep(0.2)
-    return refresh()
+    return refresh(last_event_id)
 
 
-def ui_stop():
+def ui_stop(last_event_id: int | None = None):
     CONTROLLER.stop()
     time.sleep(0.2)
-    return refresh()
+    return refresh(last_event_id)
 
 
-def ui_set_profile(profile: str):
+def ui_set_profile(profile: str, last_event_id: int | None = None):
     CONTROLLER.set_profile(profile)
     time.sleep(0.4)
-    return refresh()
+    return refresh(last_event_id)
 
 
-def ui_toggle_3b(enabled: bool):
+def ui_toggle_3b(enabled: bool, last_event_id: int | None = None):
     CONTROLLER.set_deepen(enabled)
-    return refresh()
+    return refresh(last_event_id)
 
 
-def ui_unload_3b():
+def ui_unload_3b(last_event_id: int | None = None):
     CONTROLLER.unload_deep()
-    return refresh()
+    return refresh(last_event_id)
 
 
 def ui_probe(
@@ -299,7 +308,6 @@ def ui_show_event(event_id):
 
 
 _BLANK = np.zeros((480, 854, 3), dtype=np.uint8)
-_last_event_id: int | None = None
 
 
 def refresh_live():
@@ -313,23 +321,25 @@ def refresh_live():
     return frame, _fmt_status(st), dets, st.get("narrative") or ""
 
 
-def refresh_events():
-    """Slow path: timeline + event picker. Dropdown only rebuilt when it changed."""
-    global _last_event_id
+def refresh_events(last_event_id: int | None = None):
+    """Slow path: timeline + event picker.
+
+    The seen-marker is per browser session (gr.State), so a second tab still
+    gets its dropdown rebuilt instead of one tab swallowing the update.
+    """
     rows = CONTROLLER.latest_events(30)
     timeline = _fmt_timeline(rows)
     top_id = rows[0].get("id") if rows else None
-    if top_id == _last_event_id:
-        return timeline, gr.update()
-    _last_event_id = top_id
-    return timeline, gr.update(choices=_event_choices(rows))
+    if top_id == last_event_id:
+        return timeline, gr.update(), last_event_id
+    return timeline, gr.update(choices=_event_choices(rows)), top_id
 
 
-def refresh():
+def refresh(last_event_id: int | None = None):
     """Full refresh used by button handlers."""
     live, status, dets, narrative = refresh_live()
-    timeline, pick = refresh_events()
-    return live, status, dets, narrative, timeline, pick
+    timeline, pick, top_id = refresh_events(last_event_id)
+    return live, status, dets, narrative, timeline, pick, top_id
 
 
 def build_ui() -> gr.Blocks:
@@ -398,30 +408,35 @@ Local-first desktop vision agent · **YOLO realtime** + **smart LocateAnything-3
                 event_pick = gr.Dropdown(label="Replay event snapshot", choices=[], value=None)
                 event_snap = gr.Image(label="Event frame", type="numpy", height=330)
 
-        outs = [live, status, dets, narrative, events, event_pick]
-        live_outs = [live, status, dets, narrative]
-        event_outs = [events, event_pick]
-        start_inputs = [profile, enable_3b, monitor, region_preset, resolution_preset]
+        # per-session marker for the newest event already shown in this tab
+        seen_event = gr.State(None)
 
-        btn_start.click(ui_start, inputs=start_inputs, outputs=outs)
-        btn_stop.click(ui_stop, outputs=outs)
-        btn_apply.click(ui_set_profile, inputs=[profile], outputs=outs)
-        btn_unload.click(ui_unload_3b, outputs=outs)
+        outs = [live, status, dets, narrative, events, event_pick, seen_event]
+        live_outs = [live, status, dets, narrative]
+        event_outs = [events, event_pick, seen_event]
+        capture_inputs = [monitor, region_preset, resolution_preset]
+        start_inputs = [profile, enable_3b, *capture_inputs]
+
+        btn_start.click(ui_start, inputs=[*start_inputs, seen_event], outputs=outs)
+        btn_stop.click(ui_stop, inputs=[seen_event], outputs=outs)
+        btn_apply.click(ui_set_profile, inputs=[profile, seen_event], outputs=outs)
+        btn_unload.click(ui_unload_3b, inputs=[seen_event], outputs=outs)
         btn_probe.click(
             ui_probe,
-            inputs=[monitor, region_preset, resolution_preset],
+            inputs=capture_inputs,
             outputs=[live, narrative],
         )
-        capture_inputs = [monitor, region_preset, resolution_preset]
         for ctrl in (monitor, region_preset, resolution_preset):
-            ctrl.change(ui_apply_capture, inputs=capture_inputs, outputs=outs)
-        enable_3b.change(ui_toggle_3b, inputs=[enable_3b], outputs=outs)
+            ctrl.change(
+                ui_apply_capture, inputs=[*capture_inputs, seen_event], outputs=outs
+            )
+        enable_3b.change(ui_toggle_3b, inputs=[enable_3b, seen_event], outputs=outs)
         event_pick.change(ui_show_event, inputs=[event_pick], outputs=[event_snap])
 
         gr.Timer(0.25).tick(refresh_live, outputs=live_outs)
-        gr.Timer(2.0).tick(refresh_events, outputs=event_outs)
+        gr.Timer(2.0).tick(refresh_events, inputs=[seen_event], outputs=event_outs)
         # open page → start YOLO realtime immediately (3B stays off until checked)
-        demo.load(ui_load, inputs=start_inputs, outputs=outs)
+        demo.load(ui_load, inputs=[*start_inputs, seen_event], outputs=outs)
 
     return demo
 
