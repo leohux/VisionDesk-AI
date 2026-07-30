@@ -33,3 +33,6 @@ on your machine, and the core loop does not upload data. Be mindful that:
   on-screen content. They are git-ignored by default — keep them that way.
 - Enabling LocateAnything-3B loads third-party model weights; trust them as you
   would any external model.
+- Bind the Gradio UI to localhost unless you intentionally add authentication
+  and network controls.
+- Review snapshots and logs before sharing them in an issue or pull request.

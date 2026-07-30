@@ -17,6 +17,8 @@
 - [ ] `ruff check --select E9,F63,F7,F82 .` passes
 - [ ] If trigger/profile defaults changed, explained why above
 - [ ] For performance claims, attached `visiondesk.py replay … --json` output
+- [ ] No captures, event databases, credentials, private paths, or model weights included
+- [ ] YOLO-only mode still works without LocateAnything-3B (if applicable)
 
 ## Notes
 

@@ -1,10 +1,17 @@
 # VisionDesk AI
 
+<p align="center">
+  <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
+</p>
+
 **Local-first desktop vision agent** — real-time screen perception, adaptive YOLO detection, and LocateAnything-3B reasoning only when it matters.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Version](https://img.shields.io/badge/version-0.1.0-brightgreen.svg)](__version__.py)
+<p>
+  <a href="https://github.com/leohux/VisionDesk-AI/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/leohux/VisionDesk-AI/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
+  <a href="https://github.com/leohux/VisionDesk-AI/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/leohux/VisionDesk-AI?display_name=tag&sort=semver" /></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-blue" /></a>
+  <a href="https://www.python.org/downloads/"><img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white" /></a>
+</p>
 
 > Privacy-first: runs on **your GPU**. No cloud upload required for the core loop.
 
@@ -217,6 +224,7 @@ the CI gate. In short:
 
 Security reports: please use the private flow in [SECURITY.md](SECURITY.md).
 This project follows a [Code of Conduct](CODE_OF_CONDUCT.md).
+Release history is tracked in [CHANGELOG.md](CHANGELOG.md).
 
 > Early standalone prototypes have moved to [`legacy/`](legacy/) — the supported
 > entry points are `visiondesk.py`, `app_ui.py`, and `main.py`.
