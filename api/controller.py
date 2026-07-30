@@ -261,6 +261,31 @@ class VisionController:
         except Exception as e:
             return None, f"probe failed: {e}"
 
+    def _apply_capture_unlocked(self, cfg: dict) -> None:
+        """Recompute region / monitor / processing width from overrides + profile."""
+        if not self.cap:
+            return
+        cap_cfg = cfg.get("capture") or {}
+        mon_i = int(self.monitor_override or cap_cfg.get("monitor") or 0)
+        if mon_i <= 0:
+            mon_i = self.cap.primary_index()
+        region_cfg = self.region_override or cap_cfg.get("region")
+        if region_cfg and len(region_cfg) == 4:
+            mon = self.cap.monitor_region(mon_i)
+            x, y, w, h = (int(v) for v in region_cfg)
+            # region is relative to the selected monitor
+            self.region = Region(mon.left + x, mon.top + y, w, h)
+            self.source = "roi"
+        else:
+            self.region = self.cap.monitor_region(mon_i)
+            self.source = "screen"
+        self.monitor_name = f"monitor {mon_i}"
+        self.capture_max_w = (
+            self.capture_max_w_override
+            if self.capture_max_w_override is not None
+            else int(cap_cfg.get("max_width") or 1920)
+        )
+
     def set_capture(
         self, monitor: int | None, region: tuple | None, max_width: int | None = 1920
     ) -> dict:
@@ -270,11 +295,15 @@ class VisionController:
             self.capture_max_w_override = (
                 max(0, int(max_width)) if max_width is not None else None
             )
+            # take effect immediately; Start is a no-op while the engine runs
+            if self.running and self.cap:
+                self._apply_capture_unlocked(self.cfg)
             return {
                 "ok": True,
                 "monitor": self.monitor_override,
                 "region": self.region_override,
                 "max_width": self.capture_max_w_override,
+                "applied_live": bool(self.running and self.cap),
             }
 
     def set_deepen(self, enabled: bool) -> dict:
@@ -352,6 +381,9 @@ class VisionController:
                 "gpu_total_gb": gpu_total,
                 "gpu_peak_gb": health.get("gpu_peak_gb"),
                 "monitor": self.monitor_name,
+                "region": (
+                    f"{self.region.width}x{self.region.height}" if self.region else "—"
+                ),
                 "processing_width": (
                     self.capture_max_w
                     if self.running
@@ -449,26 +481,8 @@ class VisionController:
                 self.narrative = f"Loading profile '{profile}'..."
 
             self.cap = ScreenCapture()
-            mon_i = int(self.monitor_override or (cfg.get("capture") or {}).get("monitor") or 0)
-            if mon_i <= 0:
-                mon_i = self.cap.primary_index()
-            region_cfg = self.region_override or (cfg.get("capture") or {}).get("region")
-            if region_cfg and len(region_cfg) == 4:
-                mon = self.cap.monitor_region(mon_i)
-                x, y, w, h = (int(v) for v in region_cfg)
-                # region is relative to the selected monitor
-                self.region = Region(mon.left + x, mon.top + y, w, h)
-                self.source = "roi"
-            else:
-                self.region = self.cap.monitor_region(mon_i)
-                self.source = "screen"
-
-            cap_cfg = cfg.get("capture") or {}
-            self.capture_max_w = (
-                self.capture_max_w_override
-                if self.capture_max_w_override is not None
-                else int(cap_cfg.get("max_width") or 1920)
-            )
+            with self._lock:
+                self._apply_capture_unlocked(cfg)
 
             self.yolo = build_yolo(cfg, device=self.device)
             self.deep = self._acquire_deep(cfg) if load_deep else None
@@ -487,7 +501,6 @@ class VisionController:
                 self.yolo_ready = self.yolo is not None
                 self.deep_ready = self.deep is not None
                 self.deepen_on = bool(self.deep is not None)
-                self.monitor_name = f"monitor {mon_i}"
                 self.started_at = time.time()
                 self.narrative = "Engine ready."
 

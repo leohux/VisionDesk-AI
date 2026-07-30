@@ -84,7 +84,8 @@ def _fmt_status(st: dict) -> str:
         led,
         "",
         f"Profile:\n{st.get('profile') or '—'}",
-        f"Source:\n{st.get('source') or 'screen'}",
+        f"Source:\n{st.get('source') or 'screen'} · {st.get('monitor') or '—'}",
+        f"Capture:\n{st.get('region') or '—'}",
         f"Processing:\n{str(pw) + 'px wide' if (pw := st.get('processing_width')) else 'native'}",
         "",
         f"FPS:\n{st.get('fps')}",
@@ -224,8 +225,21 @@ def ui_start(
         _processing_width(resolution_preset),
     )
     CONTROLLER.deepen_on = bool(enable_3b)
+    if CONTROLLER.running and CONTROLLER.profile_name != profile:
+        CONTROLLER.stop()
     CONTROLLER.start(profile=profile, load_deep=bool(enable_3b))
     time.sleep(0.3)
+    return refresh()
+
+
+def ui_apply_capture(monitor_label: str, region_preset: str, resolution_preset: str):
+    """Capture dropdowns take effect right away, running or not."""
+    CONTROLLER.set_capture(
+        _monitor_index(monitor_label),
+        _resolve_region(region_preset, monitor_label),
+        _processing_width(resolution_preset),
+    )
+    time.sleep(0.2)
     return refresh()
 
 
@@ -385,6 +399,9 @@ Local-first desktop vision agent · **YOLO realtime** + **smart LocateAnything-3
             inputs=[monitor, region_preset, resolution_preset],
             outputs=[live, narrative],
         )
+        capture_inputs = [monitor, region_preset, resolution_preset]
+        for ctrl in (monitor, region_preset, resolution_preset):
+            ctrl.change(ui_apply_capture, inputs=capture_inputs, outputs=outs)
         enable_3b.change(ui_toggle_3b, inputs=[enable_3b], outputs=outs)
         event_pick.change(ui_show_event, inputs=[event_pick], outputs=[event_snap])
 
