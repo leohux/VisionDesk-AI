@@ -20,8 +20,10 @@ data/roi_probe/
 .env
 .env.*
 
-# oversized demo assets (keep traffic.mp4)
-demo/openworld_demo.mp4
+# demo media (README uses docs/screenshots/; bring your own clips for replay)
+demo/*.mp4
+demo/*.gif
+demo/*.webm
 
 .DS_Store
 Thumbs.db

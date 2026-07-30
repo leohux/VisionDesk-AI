@@ -15,12 +15,9 @@
 
 > Privacy-first: runs on **your GPU**. No cloud upload required for the core loop.
 
-<!-- Record a ~30s clip per demo/DEMO_CHECKLIST.md, export to demo/traffic.gif, then uncomment: -->
-<!-- ![VisionDesk AI demo](demo/traffic.gif) -->
+![VisionDesk AI cockpit](docs/screenshots/cockpit.png)
 
 ![VisionDesk AI pipeline](docs/architecture.svg)
-
-_Demo GIF coming soon — see [`demo/DEMO_CHECKLIST.md`](demo/DEMO_CHECKLIST.md) for the recording script._
 
 ```text
 Screen / ROI
@@ -56,7 +53,7 @@ VisionDesk sits in between: **fast eyes + selective brain**.
 
 ## Performance (v0.1.0)
 
-Measured on `demo/traffic.mp4` (377 frames, `traffic` profile, ~16GB CUDA):
+Measured offline on a 377-frame traffic clip (`traffic` profile, ~16GB CUDA):
 
 | Mode | FPS | 3B calls | Reasoning efficiency | GPU |
 |------|-----|----------|----------------------|-----|
@@ -65,22 +62,20 @@ Measured on `demo/traffic.mp4` (377 frames, `traffic` profile, ~16GB CUDA):
 
 ≈ **98.3%** of deepen candidates skipped · queue pending ≤ 1
 
-Reproduce:
+Reproduce with any local video or image:
 
 ```bash
-python visiondesk.py replay demo/traffic.mp4 --profile traffic --json
-python visiondesk.py replay demo/traffic.mp4 --profile traffic --no-deep --json
+python visiondesk.py replay path/to/video.mp4 --profile traffic --json
+python visiondesk.py replay path/to/video.mp4 --profile traffic --no-deep --json
 ```
 
 Numbers live in [`demo/benchmark/SUMMARY.json`](demo/benchmark/SUMMARY.json).
 
 ## Screenshots
 
-<!-- Capture per docs/screenshots/README.md, then uncomment: -->
-<!-- ![Cockpit](docs/screenshots/cockpit.png) -->
-<!-- ![Event timeline](docs/screenshots/timeline.png) -->
+![Status + event timeline (~27 FPS)](docs/screenshots/timeline.png)
 
-_UI screenshots pending — see [`docs/screenshots/`](docs/screenshots/) for the shot list._
+![Person / crowd detection](docs/screenshots/detection.png)
 
 ## Quick start
 
@@ -181,7 +176,8 @@ VisionDesk-AI/
 ├── profiles/              # YAML scenes
 ├── ui/gradio_app.py       # Cockpit
 ├── tools/replay.py        # Offline benchmark
-└── demo/                  # sample media + measured benchmarks
+├── docs/screenshots/      # README UI captures
+└── demo/benchmark/        # measured FPS / 3B call stats
 ```
 
 ## Profiles
@@ -228,12 +224,6 @@ Release history is tracked in [CHANGELOG.md](CHANGELOG.md).
 
 > Early standalone prototypes have moved to [`legacy/`](legacy/) — the supported
 > entry points are `visiondesk.py`, `app_ui.py`, and `main.py`.
-
-## Demo media
-
-`demo/traffic.mp4` and `demo/person_bike_car.mp4` are sample clips included for
-benchmarking and quick testing. Replace them with your own footage if you
-redistribute; make sure any media you add is cleared for your use.
 
 ## License
 

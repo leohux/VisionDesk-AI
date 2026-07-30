@@ -1,16 +1,11 @@
 # Screenshots
 
-Drop UI screenshots here so the main README can embed them. Suggested shots
-(matches `demo/DEMO_CHECKLIST.md`):
+UI captures used in the main README.
 
-| File | What to capture |
-|------|-----------------|
-| `cockpit.png` | Full Gradio cockpit: live frame + status panel (Engine/FPS/GPU/3B) |
-| `timeline.png` | Event timeline with an event selected and its snapshot replayed |
-| `detection.png` | Live detection boxes (car / person / etc.) with confidences |
+| File | Shows |
+|------|--------|
+| `cockpit.png` | Full Gradio cockpit — dense traffic detection + capture settings |
+| `timeline.png` | Status / health (~27 FPS) + event timeline |
+| `detection.png` | Crowd / person detection with live boxes |
 
-Guidelines:
-
-- Use a 1280×720 capture region (see the checklist) so the window is crisp.
-- PNG, ideally < 500 KB each. Crop out unrelated desktop.
-- After adding a file, reference it in the root README "Screenshots" section.
+To refresh: run the cockpit, capture with `Win+Shift+S`, overwrite these PNGs.

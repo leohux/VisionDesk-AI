@@ -1,19 +1,20 @@
-# Demo 录制清单（30 秒）
+# Demo 录制清单（可选 GIF）
+
+仓库 README 已用静态截图（`docs/screenshots/`）。若还想补一段循环 GIF，可按下面录。
 
 ## 准备
-- [ ] 只保留一个 VisionDesk 进程（`nvidia-smi` 显存干净）
+- [ ] 只保留一个 VisionDesk 进程
 - [ ] 打开 UI：http://127.0.0.1:7860
-- [ ] Profile 选择：`traffic`
-- [ ] 开始时 3B 复选框：关闭（OFF）
-- [ ] 内容窗口：交通 / CCTV 视频（不要录 Gradio 窗口本身）
+- [ ] Profile：`traffic`；开始时 3B 关闭
+- [ ] 内容窗口放车流/行人视频（不要截 Gradio 自己）
 
-## 分镜脚本
+## 分镜（约 30 秒）
 | 时间 | 展示内容 |
 |------|----------|
-| 0–5 秒 | 状态栏：Engine Running · YOLO Loaded · 3B Ready（Start 之后再打开 3B） |
-| 5–15 秒 | 实时检测框：car / truck / person 及置信度 |
-| 15–25 秒 | 状态栏：3B 触发原因 + AI Understanding 文字 |
-| 25–30 秒 | 事件时间线 → 点击事件 → 回放截图 |
+| 0–5 秒 | Status：Engine Running · YOLO · FPS |
+| 5–15 秒 | 实时检测框 |
+| 15–25 秒 | 打开 3B → AI Understanding |
+| 25–30 秒 | Event Timeline → 点事件回放 |
 
 ## 导出
-保存为 `demo/traffic.gif`（或 mp4），用于 README 第一屏。
+可选：`demo/traffic.gif`（README 目前不依赖此文件）。
