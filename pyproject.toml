@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "visiondesk-ai"
+version = "0.1.0"
+description = "Local-first desktop vision agent: YOLO realtime + adaptive LocateAnything-3B reasoning, event memory, Gradio cockpit"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "leohux" }]
+keywords = ["computer-vision", "yolo", "locateanything", "gradio", "local-ai", "desktop", "vision"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+dependencies = [
+    "ultralytics>=8.3.0",
+    "supervision>=0.22.0",
+    "opencv-python>=4.8.0",
+    "numpy>=1.24.0",
+    "mss>=9.0.0",
+    "PyYAML>=6.0",
+    "gradio>=4.44.0",
+    "torch>=2.1.0",
+    "Pillow>=10.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/leohux/VisionDesk-AI"
+Repository = "https://github.com/leohux/VisionDesk-AI"
+Issues = "https://github.com/leohux/VisionDesk-AI/issues"
+
+[project.scripts]
+visiondesk = "visiondesk:main"
+
+[tool.setuptools]
+py-modules = ["visiondesk", "app_ui", "main", "__version__"]
+packages = ["api", "core", "models", "profiles", "tools", "ui"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120

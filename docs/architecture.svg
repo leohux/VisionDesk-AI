@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="470" viewBox="0 0 880 470" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+  <rect width="880" height="470" rx="16" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="40" y="46" font-size="24" font-weight="700" fill="#111827">VisionDesk AI  adaptive vision pipeline</text>
+  <text x="40" y="70" font-size="13" fill="#6b7280">Fast eyes (YOLO every frame) + selective brain (LocateAnything-3B only when it matters)</text>
+
+  <!-- arrow marker -->
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#9ca3af"/>
+    </marker>
+  </defs>
+
+  <!-- Row 1: capture -> yolo -> router -->
+  <g>
+    <rect x="40" y="100" width="180" height="66" rx="10" fill="#eff6ff" stroke="#3b82f6"/>
+    <text x="130" y="130" text-anchor="middle" font-size="15" font-weight="600" fill="#1e40af">Screen / ROI Capture</text>
+    <text x="130" y="150" text-anchor="middle" font-size="12" fill="#3b82f6">mss · monitor + region</text>
+
+    <rect x="270" y="100" width="180" height="66" rx="10" fill="#ecfdf5" stroke="#10b981"/>
+    <text x="360" y="130" text-anchor="middle" font-size="15" font-weight="600" fill="#065f46">YOLO Realtime</text>
+    <text x="360" y="150" text-anchor="middle" font-size="12" fill="#10b981">~3438 FPS · every frame</text>
+
+    <rect x="500" y="100" width="180" height="66" rx="10" fill="#fff7ed" stroke="#f59e0b"/>
+    <text x="590" y="126" text-anchor="middle" font-size="15" font-weight="600" fill="#92400e">Smart Trigger Router</text>
+    <text x="590" y="145" text-anchor="middle" font-size="12" fill="#b45309">uncertain / new / forced</text>
+    <text x="590" y="160" text-anchor="middle" font-size="11" fill="#d97706">H98% frames skip 3B</text>
+
+    <line x1="220" y1="133" x2="264" y2="133" stroke="#9ca3af" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="450" y1="133" x2="494" y2="133" stroke="#9ca3af" stroke-width="2" marker-end="url(#a)"/>
+  </g>
+
+  <!-- down arrow to 3B -->
+  <line x1="590" y1="166" x2="590" y2="204" stroke="#9ca3af" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- Row 2: 3B -> summary -> memory -->
+  <g>
+    <rect x="500" y="208" width="180" height="66" rx="10" fill="#f5f3ff" stroke="#8b5cf6"/>
+    <text x="590" y="238" text-anchor="middle" font-size="15" font-weight="600" fill="#5b21b6">LocateAnything-3B</text>
+    <text x="590" y="258" text-anchor="middle" font-size="12" fill="#8b5cf6">deep reasoning · on demand</text>
+
+    <rect x="270" y="208" width="180" height="66" rx="10" fill="#fdf2f8" stroke="#ec4899"/>
+    <text x="360" y="238" text-anchor="middle" font-size="15" font-weight="600" fill="#9d174d">AI Summary</text>
+    <text x="360" y="258" text-anchor="middle" font-size="12" fill="#ec4899">natural-language result</text>
+
+    <rect x="40" y="208" width="180" height="66" rx="10" fill="#f0fdfa" stroke="#14b8a6"/>
+    <text x="130" y="232" text-anchor="middle" font-size="15" font-weight="600" fill="#115e59">Event Memory</text>
+    <text x="130" y="251" text-anchor="middle" font-size="12" fill="#14b8a6">SQLite + frame snapshots</text>
+
+    <line x1="500" y1="241" x2="456" y2="241" stroke="#9ca3af" stroke-width="2" marker-end="url(#a)"/>
+    <line x1="270" y1="241" x2="226" y2="241" stroke="#9ca3af" stroke-width="2" marker-end="url(#a)"/>
+  </g>
+
+  <!-- down to timeline -->
+  <line x1="130" y1="274" x2="130" y2="312" stroke="#9ca3af" stroke-width="2" marker-end="url(#a)"/>
+
+  <!-- Row 3: timeline replay -->
+  <rect x="40" y="316" width="180" height="60" rx="10" fill="#f9fafb" stroke="#6b7280"/>
+  <text x="130" y="344" text-anchor="middle" font-size="15" font-weight="600" fill="#374151">Timeline Replay</text>
+  <text x="130" y="363" text-anchor="middle" font-size="12" fill="#6b7280">click event ’ snapshot</text>
+
+  <!-- Cockpit band -->
+  <rect x="40" y="404" width="640" height="44" rx="10" fill="#111827"/>
+  <text x="360" y="431" text-anchor="middle" font-size="14" font-weight="600" fill="#f9fafb">Gradio Cockpit  ·  live status · FPS · GPU · 3B calls/skips · event timeline</text>
+
+  <!-- Side note: controller -->
+  <rect x="716" y="100" width="128" height="276" rx="10" fill="#f9fafb" stroke="#d1d5db" stroke-dasharray="4 3"/>
+  <text x="780" y="128" text-anchor="middle" font-size="13" font-weight="700" fill="#374151">api/controller</text>
+  <text x="780" y="150" text-anchor="middle" font-size="11" fill="#6b7280">engine facade</text>
+  <text x="780" y="170" text-anchor="middle" font-size="11" fill="#6b7280">3B singleton</text>
+  <text x="780" y="188" text-anchor="middle" font-size="11" fill="#6b7280">VRAM lifecycle</text>
+  <text x="780" y="206" text-anchor="middle" font-size="11" fill="#6b7280">health monitor</text>
+  <line x1="716" y1="238" x2="686" y2="238" stroke="#d1d5db" stroke-width="2" stroke-dasharray="4 3"/>
+</svg>

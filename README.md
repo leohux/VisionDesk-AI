@@ -8,6 +8,13 @@
 
 > Privacy-first: runs on **your GPU**. No cloud upload required for the core loop.
 
+<!-- Record a ~30s clip per demo/DEMO_CHECKLIST.md, export to demo/traffic.gif, then uncomment: -->
+<!-- ![VisionDesk AI demo](demo/traffic.gif) -->
+
+![VisionDesk AI pipeline](docs/architecture.svg)
+
+_Demo GIF coming soon — see [`demo/DEMO_CHECKLIST.md`](demo/DEMO_CHECKLIST.md) for the recording script._
+
 ```text
 Screen / ROI
     ↓
@@ -59,6 +66,14 @@ python visiondesk.py replay demo/traffic.mp4 --profile traffic --no-deep --json
 ```
 
 Numbers live in [`demo/benchmark/SUMMARY.json`](demo/benchmark/SUMMARY.json).
+
+## Screenshots
+
+<!-- Capture per docs/screenshots/README.md, then uncomment: -->
+<!-- ![Cockpit](docs/screenshots/cockpit.png) -->
+<!-- ![Event timeline](docs/screenshots/timeline.png) -->
+
+_UI screenshots pending — see [`docs/screenshots/`](docs/screenshots/) for the shot list._
 
 ## Quick start
 
@@ -193,11 +208,24 @@ Default processing width is **1920px (1080p)** for stable FPS on 4K monitors; ra
 
 ## Contributing
 
-Issues and PRs welcome. Please keep changes focused:
+Issues and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup and
+the CI gate. In short:
 
 - no drive-by refactors
 - include a short note if you change trigger / profile defaults
 - for performance claims, attach `visiondesk.py replay … --json` output
+
+Security reports: please use the private flow in [SECURITY.md](SECURITY.md).
+This project follows a [Code of Conduct](CODE_OF_CONDUCT.md).
+
+> Early standalone prototypes have moved to [`legacy/`](legacy/) — the supported
+> entry points are `visiondesk.py`, `app_ui.py`, and `main.py`.
+
+## Demo media
+
+`demo/traffic.mp4` and `demo/person_bike_car.mp4` are sample clips included for
+benchmarking and quick testing. Replace them with your own footage if you
+redistribute; make sure any media you add is cleared for your use.
 
 ## License
 
