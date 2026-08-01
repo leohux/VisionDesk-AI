@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>本地优先的桌面视觉智能体</strong><br />
-  YOLO 实时感知 + 按需 LocateAnything-3B 推理 + 事件记忆
+  YOLO 实时感知 + 按需深度推理（LocateAnything-3B 或 Mage-VL）+ 事件记忆
 </p>
 
 <p align="center">
@@ -31,7 +31,7 @@ YOLO 实时检测（约 34–38 FPS）
     ↓
 智能触发路由
     ↓
-LocateAnything-3B（仅在不确定 / 新事件 / 强制时调用）
+LocateAnything-3B | Mage-VL（仅在不确定 / 新事件 / 强制时调用）
     ↓
 AI 摘要 → SQLite 事件记忆 → 时间线回放
 ```
@@ -42,12 +42,13 @@ AI 摘要 → SQLite 事件记忆 → 时间线回放
 |------|------|
 | 实时屏幕 / ROI 捕获 | ✅ |
 | YOLO 自适应检测 | ✅ |
-| 按需 3B 视觉推理 | ✅ |
+| 按需深度 VLM 推理 | ✅ |
 | 事件记忆与快照回放 | ✅ |
 | Gradio 控制台 + OpenCV 桌面窗口 | ✅ |
 | 离线回放 / Benchmark CLI | ✅ |
 | YAML 场景配置 | ✅ |
-| 基于历史事件的 VLM 问答 | 🚧 v0.2 |
+| Mage-VL 触发解说 | ✅ |
+| 基于历史事件的 VLM 问答 | 🚧 later |
 
 ## 性能（v0.1.0）
 
@@ -84,9 +85,9 @@ python app_ui.py
 
 推荐首次运行：
 
-1. 选择 `traffic` profile，先关闭 LocateAnything-3B，确认实时 FPS。
+1. 选择 `traffic` profile，先关闭 Deep reasoner，确认实时 FPS。
 2. 在 Capture settings 选择显示器与处理分辨率。
-3. 准备好约 7GB 额外显存后再开启 3B。
+3. 准备好额外显存后再开启 Deep reasoner（LocateAnything 约 7GB，Mage-VL 约 8–10GB）。
 4. 在 Event Timeline 中回放事件快照。
 
 OpenCV 桌面窗口：
@@ -104,9 +105,15 @@ python visiondesk.py replay path/to/video.mp4 --profile traffic --json
 python visiondesk.py replay shot.jpg --profile general --no-deep
 ```
 
-## LocateAnything-3B 配置
+## 深度推理配置
 
-3B 是可选项；YOLO-only 模式可独立运行。
+YOLO-only 可独立运行。深度模型同一时间只加载一个后端，在 profile 中设置：
+
+```yaml
+deep_backend: locate3b   # 或 mage_vl | none
+```
+
+### LocateAnything-3B（框定位）
 
 1. 从 [nvidia/LocateAnything-3B](https://huggingface.co/nvidia/LocateAnything-3B) 下载模型。
 2. 用环境变量指定本地路径：
@@ -118,6 +125,20 @@ export LOCATE_ANYTHING_PATH=/path/to/LocateAnything-3B  # Linux/macOS
 
 也可以在 `profiles/*.yaml` 中设置 `locate3b.model_path`。
 
+### Mage-VL（AI 理解 / 解说）
+
+[Mage-VL](https://huggingface.co/microsoft/Mage-VL) 在触发后对 ROI 生成自然语言，写入 **AI understanding**；检测框仍由 YOLO 负责。
+
+```yaml
+deep_backend: mage_vl
+mage_vl:
+  model_path: microsoft/Mage-VL
+  max_side: 960
+  max_new_tokens: 256
+```
+
+也可设置 `MAGE_VL_PATH` 指向本地目录。Mage 需要较新的 `transformers`；若与 LocateAnything 环境冲突，请分环境或只选一个 `deep_backend`。
+
 ## 目录结构
 
 ```text
@@ -127,11 +148,11 @@ VisionDesk-AI/
 ├── main.py                # OpenCV 桌面入口
 ├── api/controller.py      # 视觉引擎 facade
 ├── core/                  # capture、dual_brain、health、events
-├── models/                # YOLO、LocateAnything-3B 包装
-├── profiles/              # YAML 场景配置
+├── models/                # YOLO、locate3b、mage_vl
+├── profiles/              # YAML 场景配置（含 deep_backend）
 ├── ui/gradio_app.py       # 控制台
 ├── tools/replay.py        # 离线 benchmark
-└── demo/                  # 示例与实测数据
+└── demo/benchmark/        # 实测数据
 ```
 
 ## 参与贡献

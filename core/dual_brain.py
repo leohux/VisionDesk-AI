@@ -1,4 +1,4 @@
-"""Dual-brain router: cheap YOLO scan + smart LocateAnything-3B deepen.
+"""Dual-brain router: cheap YOLO scan + smart deep VLM deepen.
 
 Stability: at most one pending deepen job; newer requests overwrite older ones.
 """
@@ -175,6 +175,12 @@ class DualBrain:
             roi = frame[ry1:ry2, rx1:rx2]
             if roi.size == 0:
                 return
+            # Optional context for narrators (e.g. Mage-VL); LocateAnything ignores it.
+            if hasattr(self.deep, "set_context"):
+                try:
+                    self.deep.set_context(yolo_summary=yolo_summary, reason=reason)
+                except Exception:
+                    pass
             deep = self.deep.predict(roi)
             mapped = [
                 Box(
@@ -188,8 +194,9 @@ class DualBrain:
                 for b in deep.boxes
             ]
             latency_ms = (time.perf_counter() - t0) * 1000.0
+            backend_tag = getattr(self.deep, "backend_name", None) or deep.backend or "deep"
             narrative = (
-                f"[3B trigger: {reason}] {yolo_summary} → "
+                f"[{backend_tag} trigger: {reason}] {yolo_summary} → "
                 f"ROI ({rx1},{ry1})-({rx2},{ry2}): {deep.summary}"
             )
             result = DetectionResult(

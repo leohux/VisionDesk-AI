@@ -20,11 +20,10 @@ from core.annotate import annotate
 from core.capture import Region, ScreenCapture
 from core.dual_brain import DualBrain
 from core.event import EventStore
-from core.factory import build_brain, build_deep, build_yolo
+from core.factory import build_brain, build_deep, build_yolo, deep_backend_of, resolve_mage_path, resolve_deep_path
 from core.health import HealthTracker
 from core.tracker import Tracker
 from core.types import DetectionResult
-from models.locate3b import LocateAnythingDetector
 from models.yolo import YoloDetector
 from profiles import list_profiles, load_profile
 
@@ -55,14 +54,35 @@ _MIN_REGION = 32
 
 
 def _deep_key(cfg: dict) -> tuple:
+    backend = deep_backend_of(cfg)
+    if backend == "mage_vl":
+        mv = cfg.get("mage_vl") or {}
+        return (
+            "mage_vl",
+            resolve_mage_path(mv.get("model_path")),
+            int(mv.get("max_side", 960)),
+            int(mv.get("max_new_tokens", 256)),
+            str(mv.get("question") or (cfg.get("reasoning") or {}).get("prompt") or ""),
+        )
+    if backend == "none":
+        return ("none",)
     la = cfg.get("locate3b") or {}
     return (
-        str(la.get("model_path", "")),
+        "locate3b",
+        resolve_deep_path(la.get("model_path")),
         tuple(la.get("classes") or []),
         str(la.get("generation_mode", "hybrid")),
         int(la.get("max_side", 960)),
         int(la.get("max_new_tokens", 768)),
     )
+
+
+def _deep_label(backend: str) -> str:
+    if backend == "mage_vl":
+        return "Mage-VL"
+    if backend == "locate3b":
+        return "LocateAnything-3B"
+    return "Deep VLM"
 
 
 class VisionController:
@@ -85,10 +105,10 @@ class VisionController:
         self.cap: ScreenCapture | None = None
         self.region: Region | None = None
         self.yolo: YoloDetector | None = None
-        self.deep: LocateAnythingDetector | None = None
-        # 3B weights are ~7GB — keep one instance alive across restarts so a
-        # profile switch never loads a second copy into VRAM.
-        self._deep_cache: LocateAnythingDetector | None = None
+        self.deep: Any = None
+        # Deep VLM weights are large — keep one instance alive across restarts so a
+        # profile switch never loads a second copy into VRAM (locate3b XOR mage_vl).
+        self._deep_cache: Any = None
         self._deep_cache_key: tuple | None = None
         self.brain: DualBrain | None = None
         self.tracker: Tracker | None = None
@@ -181,7 +201,7 @@ class VisionController:
         self.last_trigger_reason = ""
         _free_gpu()
 
-    def _acquire_deep(self, cfg: dict) -> LocateAnythingDetector | None:
+    def _acquire_deep(self, cfg: dict) -> Any:
         key = _deep_key(cfg)
         if self._deep_cache is not None and self._deep_cache_key == key:
             return self._deep_cache
@@ -195,7 +215,7 @@ class VisionController:
         return deep
 
     def unload_deep(self) -> dict:
-        """Release the cached 3B model and its VRAM."""
+        """Release the cached deep VLM and its VRAM."""
         with self._lock:
             self.deep = None
             self.brain = None
@@ -204,7 +224,7 @@ class VisionController:
             self.deep_ready = False
             self.deepen_on = False
         _free_gpu()
-        return {"ok": True, "locate3b": False}
+        return {"ok": True, "deep": False, "locate3b": False}
 
     # ---- control API ----
     def set_profile(self, profile: str) -> dict:
@@ -321,7 +341,7 @@ class VisionController:
             }
 
     def set_deepen(self, enabled: bool) -> dict:
-        """Attach/detach 3B without restarting the engine."""
+        """Attach/detach deep VLM without restarting the engine."""
         enabled = bool(enabled)
         if not enabled:
             with self._lock:
@@ -330,7 +350,7 @@ class VisionController:
                 self.deep = None
                 self.deep_ready = False
             _free_gpu()
-            return {"ok": True, "locate3b": False}
+            return {"ok": True, "deep": False, "locate3b": False}
 
         with self._lock:
             cfg = self.cfg
@@ -338,13 +358,15 @@ class VisionController:
         if not running or not cfg:
             with self._lock:
                 self.deepen_on = True
-            return {"ok": True, "locate3b": True, "note": "will load on start"}
+            return {"ok": True, "deep": True, "locate3b": True, "note": "will load on start"}
 
+        backend = deep_backend_of(cfg)
+        label = _deep_label(backend)
         try:
             deep = self._acquire_deep(cfg)
         except Exception as e:
             with self._lock:
-                self.load_error = f"3B load failed: {e}"
+                self.load_error = f"{label} load failed: {e}"
                 self.deepen_on = False
             _free_gpu()
             return {"ok": False, "error": str(e)}
@@ -355,7 +377,12 @@ class VisionController:
             self.deep_ready = deep is not None
             self.deepen_on = deep is not None
             self._last_deep_calls = 0
-            return {"ok": True, "locate3b": self.deepen_on}
+            return {
+                "ok": True,
+                "deep": self.deepen_on,
+                "locate3b": self.deepen_on and backend == "locate3b",
+                "deep_backend": backend,
+            }
 
     def status(self) -> dict:
         gpu_used, gpu_total = _gpu_stats()
@@ -371,6 +398,8 @@ class VisionController:
                 else ("starting" if self.running else "stopped")
             )
             health = self.health.health.as_dict()
+            backend = deep_backend_of(self.cfg) if self.cfg else "locate3b"
+            deep_on = bool(self.deepen_on and self.deep is not None)
             return {
                 "profile": self.profile_name,
                 "running": self.running,
@@ -379,7 +408,10 @@ class VisionController:
                 "fps": round(self.fps, 1),
                 "yolo": self.yolo is not None,
                 "yolo_ready": self.yolo_ready,
-                "locate3b": bool(self.deepen_on and self.deep is not None),
+                "deep_backend": backend,
+                "deep_backend_label": _deep_label(backend),
+                "locate3b": deep_on and backend == "locate3b",
+                "deep": deep_on,
                 "deep_ready": self.deep_ready,
                 "deep_busy": bool(self.brain.busy) if self.brain else False,
                 "deep_calls": deep_calls,

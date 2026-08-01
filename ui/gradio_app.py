@@ -32,7 +32,8 @@ _ICON = {
 
 
 def _icon_for(label: str | None, backend: str | None) -> str:
-    if backend and "locate" in str(backend).lower():
+    b = str(backend or "").lower()
+    if "locate" in b or "mage" in b:
         return "🧠"
     if not label:
         return "•"
@@ -60,10 +61,12 @@ def _fmt_status(st: dict) -> str:
         gpu_line = "n/a"
 
     yolo = "Loaded ✓" if st.get("yolo_ready") or st.get("yolo") else "—"
-    deep_on = st.get("locate3b")
+    deep_label = st.get("deep_backend_label") or "Deep VLM"
+    backend = st.get("deep_backend") or "locate3b"
+    deep_on = st.get("deep") if "deep" in st else st.get("locate3b")
     if deep_on and st.get("deep_busy"):
         deep = "Busy…"
-    elif deep_on and (st.get("deep_ready") or st.get("locate3b")):
+    elif deep_on and (st.get("deep_ready") or deep_on):
         deep = "Ready ✓"
     elif deep_on:
         deep = "Loading…"
@@ -92,12 +95,12 @@ def _fmt_status(st: dict) -> str:
         "",
         f"YOLO:\n{yolo}  ({st.get('boxes', 0)} boxes)",
         "",
-        f"LocateAnything-3B:\n{deep}",
+        f"Deep reasoner ({deep_label} / {backend}):\n{deep}",
         f"  calls={st.get('deep_calls', 0)}  skipped={st.get('deep_skipped', 0)}",
         f"  queue={st.get('deep_pending', 0)}  superseded={st.get('deep_superseded', 0)}",
         f"  last trigger:\n  {reason}",
         "",
-        f"3B Trigger Report:\n{reason_lines}",
+        f"Trigger Report:\n{reason_lines}",
         "",
         f"GPU:\n{gpu_line}",
         "",
@@ -354,7 +357,7 @@ def build_ui() -> gr.Blocks:
         gr.Markdown(
             """
 # VisionDesk AI
-Local-first desktop vision agent · **YOLO realtime** + **smart LocateAnything-3B**
+Local-first desktop vision agent · **YOLO realtime** + **smart deep reasoner** (LocateAnything-3B or Mage-VL)
 """
         )
         with gr.Row(equal_height=True):
@@ -370,7 +373,7 @@ Local-first desktop vision agent · **YOLO realtime** + **smart LocateAnything-3
                 profile = gr.Dropdown(profiles, value="traffic", label="Profile")
                 enable_3b = gr.Checkbox(
                     value=False,
-                    label="LocateAnything-3B deepen (loads ~7GB on first enable)",
+                    label="Deep reasoner (VLM) — backend from profile deep_backend",
                 )
                 with gr.Accordion("Capture settings", open=False):
                     mons = CONTROLLER.list_monitors()
@@ -394,7 +397,7 @@ Local-first desktop vision agent · **YOLO realtime** + **smart LocateAnything-3
                     with gr.Row():
                         btn_probe = gr.Button("Test region (Stop first)")
                         btn_apply = gr.Button("Apply profile")
-                    btn_unload = gr.Button("Unload 3B")
+                    btn_unload = gr.Button("Unload deep VLM")
                 status = gr.Textbox(
                     label="Status / Health", lines=26, max_lines=26, elem_id="status-panel"
                 )

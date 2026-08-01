@@ -56,6 +56,22 @@ def normalize_profile(data: dict[str, Any]) -> dict[str, Any]:
     out["yolo"] = yolo
     out["locate3b"] = locate
 
+    # --- deep backend (locate3b | mage_vl | none) ---
+    backend = str(out.get("deep_backend") or "locate3b").strip().lower()
+    if backend in ("mage", "mage-vl", "magevl"):
+        backend = "mage_vl"
+    elif backend in ("locate", "3b", "locate-anything", "locateanything"):
+        backend = "locate3b"
+    elif backend in ("off", "disabled", ""):
+        backend = "none"
+    out["deep_backend"] = backend
+
+    mage = dict(out.get("mage_vl") or {})
+    reasoning = dict(out.get("reasoning") or {})
+    if reasoning.get("prompt") and "question" not in mage and "prompt" not in mage:
+        mage["question"] = reasoning["prompt"]
+    out["mage_vl"] = mage
+
     # --- trigger → dual_brain ---
     trigger = dict(out.get("trigger") or {})
     dual = dict(out.get("dual_brain") or {})
@@ -81,7 +97,6 @@ def normalize_profile(data: dict[str, Any]) -> dict[str, Any]:
     out["dual_brain"] = dual
 
     # --- reasoning ---
-    reasoning = dict(out.get("reasoning") or {})
     if reasoning.get("prompt") and "prompt" not in locate:
         locate["prompt"] = reasoning["prompt"]
         out["locate3b"] = locate

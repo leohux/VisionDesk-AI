@@ -71,7 +71,7 @@ class EngineHealth:
             "",
             f"YOLO:\n{yolo}",
             "",
-            f"3B:\n{deep}",
+            f"Deep:\n{deep}",
             f"  calls={self.deep_calls}  skipped={self.deep_skipped}",
             f"  superseded={self.deep_superseded}",
             "",

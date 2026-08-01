@@ -24,6 +24,8 @@ yolo:
   classes: []
   keep_class_ids: [0]
 
+deep_backend: locate3b
+
 locate3b:
   enabled: true
   model_path: LocateAnything-3B
@@ -31,6 +33,12 @@ locate3b:
   max_side: 1024
   max_new_tokens: 768
   classes: [person]
+
+mage_vl:
+  model_path: microsoft/Mage-VL
+  max_side: 960
+  max_new_tokens: 256
+  question: "Analyze people in the scene: count, pose, and notable actions."
 
 trigger:
   labels: [person]

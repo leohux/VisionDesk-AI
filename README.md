@@ -4,7 +4,7 @@
   <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
-**Local-first desktop vision agent** — real-time screen perception, adaptive YOLO detection, and LocateAnything-3B reasoning only when it matters.
+**Local-first desktop vision agent** — real-time screen perception, adaptive YOLO detection, and a deep reasoner (LocateAnything-3B or Mage-VL) only when it matters.
 
 <p>
   <a href="https://github.com/leohux/VisionDesk-AI/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/leohux/VisionDesk-AI/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
@@ -26,7 +26,7 @@ YOLO realtime (≈34–38 FPS)
     ↓
 Smart Trigger Router
     ↓
-LocateAnything-3B  ← only when uncertain / new / forced
+LocateAnything-3B | Mage-VL  ← only when uncertain / new / forced
     ↓
 AI Summary → SQLite Event Memory → Timeline Replay
 ```
@@ -44,12 +44,13 @@ VisionDesk sits in between: **fast eyes + selective brain**.
 |---|---|
 | Real-time screen / ROI capture | ✅ |
 | YOLO adaptive detection | ✅ |
-| Adaptive Vision Routing (3B on demand) | ✅ |
+| Adaptive Vision Routing (deep VLM on demand) | ✅ |
 | Event memory + snapshot replay | ✅ |
 | Gradio cockpit + OpenCV desktop | ✅ |
 | Offline replay / benchmark CLI | ✅ |
 | Scene profiles (YAML) | ✅ |
-| VLM Q&A over event history | 🚧 v0.2 |
+| Mage-VL narrate on trigger | ✅ |
+| VLM Q&A over event history | 🚧 later |
 
 ## Performance (v0.1.0)
 
@@ -120,7 +121,7 @@ python main.py --profile person --no-deep
 |-----|--------|
 | `q` / `ESC` | Quit |
 | `1`–`4` | Switch profile |
-| `d` | Toggle 3B deepen |
+| `d` | Toggle deep reasoner |
 | `r` | Re-select ROI |
 | `s` | Save snapshot |
 
@@ -131,36 +132,63 @@ python visiondesk.py replay path/to/video.mp4 --profile traffic --json
 python visiondesk.py replay shot.jpg --profile general --no-deep
 ```
 
-## LocateAnything-3B setup
+## Deep reasoner setup
 
-3B is optional. YOLO-only mode works out of the box.
+YOLO-only mode works out of the box. Deepen is optional and **loads only one**
+backend at a time (set in each profile):
+
+```yaml
+deep_backend: locate3b   # or mage_vl | none
+```
+
+### LocateAnything-3B (box grounding)
 
 1. Download / clone [nvidia/LocateAnything-3B](https://huggingface.co/nvidia/LocateAnything-3B) locally.
-2. Point VisionDesk at it **one** of these ways:
+2. Point VisionDesk at it:
 
 ```bash
-# environment variable (preferred)
 set LOCATE_ANYTHING_PATH=C:\path\to\LocateAnything-3B   # Windows
 export LOCATE_ANYTHING_PATH=/path/to/LocateAnything-3B  # Linux/macOS
 ```
 
 ```yaml
-# or in profiles/*.yaml
+deep_backend: locate3b
 locate3b:
   enabled: true
-  model_path: LocateAnything-3B   # relative or absolute
+  model_path: LocateAnything-3B
 ```
 
-3. Use the same Python env that can import that model’s dependencies, or install them into this venv.
+### Mage-VL (AI understanding / narrate)
+
+[Mage-VL](https://huggingface.co/microsoft/Mage-VL) turns a triggered ROI into natural-language
+understanding for the **AI understanding** panel (no detection boxes). YOLO keeps drawing boxes.
+
+```bash
+# optional local checkout
+set MAGE_VL_PATH=C:\path\to\Mage-VL
+# or let transformers download microsoft/Mage-VL
+```
+
+```yaml
+deep_backend: mage_vl
+mage_vl:
+  model_path: microsoft/Mage-VL
+  max_side: 960
+  max_new_tokens: 256
+  question: "Briefly describe what is happening in this scene."
+```
+
+Mage wants a recent `transformers` (upstream docs mention ≥5.7). If that conflicts with
+LocateAnything’s stack, use separate Python envs or stick to one `deep_backend`.
 
 ## Architecture
 
 ```text
 Gradio UI / CLI
        ↓
-api/controller.py     ← engine facade, 3B singleton cache, health
+api/controller.py     ← engine facade, deep VLM singleton cache, health
        ↓
-Capture → YOLO → DualBrain Router → LocateAnything-3B
+Capture → YOLO → DualBrain Router → LocateAnything-3B | Mage-VL
        ↓
 SQLite events + optional frame snapshots
 ```
@@ -172,12 +200,12 @@ VisionDesk-AI/
 ├── main.py                # OpenCV desktop entry
 ├── api/controller.py      # Vision Engine
 ├── core/                  # capture, dual_brain, health, events, factory
-├── models/                # yolo, locate3b wrappers
-├── profiles/              # YAML scenes
+├── models/                # yolo, locate3b, mage_vl
+├── profiles/              # YAML scenes (deep_backend switch)
 ├── ui/gradio_app.py       # Cockpit
 ├── tools/replay.py        # Offline benchmark
 ├── docs/screenshots/      # README UI captures
-└── demo/benchmark/        # measured FPS / 3B call stats
+└── demo/benchmark/        # measured FPS / deep-call stats
 ```
 
 ## Profiles
@@ -190,24 +218,25 @@ VisionDesk-AI/
 | `security` | Higher-sensitivity / force labels |
 | `gaming` | Example custom profile |
 
-Edit `profiles/*.yaml` — user-facing sections: `detection`, `trigger`, `reasoning`, `capture`.
+Edit `profiles/*.yaml` — user-facing sections: `detection`, `trigger`, `reasoning`,
+`capture`, `deep_backend`, `locate3b`, `mage_vl`.
 
 Default processing width is **1920px (1080p)** for stable FPS on 4K monitors; raise to 1440p / native in the UI when you need more detail.
 
 ## Requirements
 
 - Python **3.10+**
-- CUDA GPU recommended (16GB+ comfortable for YOLO + 3B)
+- CUDA GPU recommended (16GB+ comfortable for YOLO + one deep VLM)
 - `yolov8m.pt` (or change weights in profile)
-- LocateAnything-3B only if you enable deepen
+- LocateAnything-3B **or** Mage-VL only if you enable deepen
 
 ## Roadmap
 
 | Version | Focus |
 |---------|--------|
-| **v0.1.0** | Perception + adaptive 3B + memory + cockpit + benchmark |
-| v0.2.0 | VLM Q&A over event history (“why did this alert fire?”) |
-| later | Multi-monitor layouts, export packs, plugin profiles |
+| **v0.1.0** | Perception + adaptive deepen + memory + cockpit + benchmark |
+| **v0.1.x** | Mage-VL narrate on smart trigger |
+| later | VLM Q&A over event history; Mage streaming / codec path |
 
 ## Contributing
 

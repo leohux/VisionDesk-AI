@@ -24,6 +24,8 @@ yolo:
   classes: []
   keep_class_ids: null
 
+deep_backend: locate3b
+
 locate3b:
   enabled: true
   model_path: LocateAnything-3B
@@ -31,6 +33,12 @@ locate3b:
   max_side: 960
   max_new_tokens: 768
   classes: [person, car, truck, bus, dog, cat, phone, laptop, cup, bottle, chair, bag, book, tv]
+
+mage_vl:
+  model_path: microsoft/Mage-VL
+  max_side: 960
+  max_new_tokens: 256
+  question: "Briefly describe the main objects and what is happening."
 
 trigger:
   labels: [person, car, truck, bus, dog, cat]

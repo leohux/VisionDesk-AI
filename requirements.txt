@@ -1,5 +1,5 @@
 # VisionDesk AI — core runtime
-# Install CUDA PyTorch first from https://pytorch.org (match your GPU), then:
+# Install CUDA PyTorch for your GPU first: https://pytorch.org
 #   pip install -r requirements.txt
 
 ultralytics>=8.3.0
@@ -11,6 +11,11 @@ PyYAML>=6.0
 gradio>=4.44.0
 torch>=2.1.0
 Pillow>=10.0.0
+transformers>=4.45.0
+accelerate>=0.33.0
 
-# LocateAnything-3B extra deps are provided by that project's environment.
-# Point profiles/*.yaml locate3b.model_path (or set LOCATE_ANYTHING_PATH).
+# Deep reasoners (optional, mutually exclusive in VRAM):
+# - LocateAnything-3B: use that project's env, or set LOCATE_ANYTHING_PATH
+# - Mage-VL: needs a recent transformers (upstream docs suggest >=5.7 when available).
+#   If versions conflict with LocateAnything, use separate venvs or pin one backend.
+#   Set MAGE_VL_PATH to a local checkout, or leave model_path as microsoft/Mage-VL.

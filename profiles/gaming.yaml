@@ -1,4 +1,4 @@
-# Example custom profile â€?copy & edit for your domain.
+# Example custom profile - copy and edit for your domain.
 # Users can create profiles/*.yaml; load via --profile gaming
 
 name: gaming
@@ -27,6 +27,8 @@ yolo:
   classes: []
   keep_class_ids: [0, 2, 3, 5, 7]
 
+deep_backend: locate3b
+
 locate3b:
   enabled: true
   model_path: LocateAnything-3B
@@ -34,6 +36,12 @@ locate3b:
   max_side: 960
   max_new_tokens: 768
   classes: [person, weapon, vehicle, enemy, item]
+
+mage_vl:
+  model_path: microsoft/Mage-VL
+  max_side: 960
+  max_new_tokens: 256
+  question: "Analyze the game scene: players, threats, and key objects."
 
 trigger:
   labels: [person, car, truck]

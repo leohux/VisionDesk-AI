@@ -24,6 +24,8 @@ yolo:
   classes: []
   keep_class_ids: [0, 2, 3, 5, 7]
 
+deep_backend: locate3b
+
 locate3b:
   enabled: true
   model_path: LocateAnything-3B
@@ -31,6 +33,12 @@ locate3b:
   max_side: 1024
   max_new_tokens: 1024
   classes: [person, car, truck, backpack, handbag, suitcase, knife, gun, rifle, drone]
+
+mage_vl:
+  model_path: microsoft/Mage-VL
+  max_side: 960
+  max_new_tokens: 256
+  question: "Analyze security-relevant objects and describe why an alert may be needed."
 
 trigger:
   labels: [person, car, truck, backpack, handbag]

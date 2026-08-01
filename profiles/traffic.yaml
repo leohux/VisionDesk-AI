@@ -24,6 +24,9 @@ yolo:
   classes: []
   keep_class_ids: [0, 1, 2, 3, 5, 7]  # person bicycle car motorcycle bus truck
 
+# Deep reasoner backend: locate3b | mage_vl | none (only one loaded at a time)
+deep_backend: locate3b
+
 locate3b:
   enabled: true
   model_path: LocateAnything-3B
@@ -31,6 +34,12 @@ locate3b:
   max_side: 960
   max_new_tokens: 768
   classes: [person, car, truck, bus, motorcycle, bicycle, traffic light]
+
+mage_vl:
+  model_path: microsoft/Mage-VL   # or local path / set MAGE_VL_PATH
+  max_side: 960
+  max_new_tokens: 256
+  question: "Briefly describe the traffic scene: vehicles, people, and notable risks."
 
 trigger:
   labels: [person, car, truck, bus, motorcycle]
